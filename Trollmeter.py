@@ -1,4 +1,5 @@
 import twitterClientManager
+import twitterClientManagerUpdate
 import tweet_utils
 import pandas as pd
 import numpy as np
@@ -7,6 +8,8 @@ import json
 import warnings
 from keras.models import load_model
 from keras_preprocessing.sequence import pad_sequences
+import importlib
+importlib.reload(twitterClientManagerUpdate)
 
 warnings.filterwarnings("ignore")
 path = r"C:\Users\gianluca.nogara\Desktop\Repo\precollection_trolls"
@@ -111,6 +114,26 @@ def get_keys():
 
     apis = [consumer_keys, consumer_secrets, access_tokens, access_token_secrets, bearer_tokens]
     return apis
+
+
+def collect_data_update(username):
+    print("Starting collection...")
+    api = get_keys()
+    twitter_client_v1 = twitterClientManagerUpdate.TwitterClientV1(apis=api, twitter_user=username)
+    original, reply, retweet, mentions = twitter_client_v1.get_active_interactions(max_tweets=30)
+    print(f"Original: ", len(original))
+    print(f"Reply: ", len(reply))
+    print(f"Retweet: ", len(retweet))
+    print(f"Mentions: ", len(mentions))
+    rts = twitter_client_v1.get_passive_rts(max_rts=10)
+    print(f"RTs: ", len(rts))
+    rps = twitter_client_v1.get_passive_rps(max_rps=10)
+    print(f"RPs: ", len(rps))
+    mnts = twitter_client_v1.get_passive_mentions(max_mentions=10)
+    print(f"MNTs: ", len(mnts))
+    print("Data collected!")
+    print("-----------------")
+    return original, mentions, reply, retweet, rts, rps, mnts
 
 
 def collect_data(username):
@@ -303,18 +326,26 @@ def predict(sequence):
 def calculate_troll_score(username, collection=True, df_tw_a=None, df_m_a=None, df_rp_a=None, df_RT_a=None,
                           df_RT_m=None, df_rp_m=None, df_m_m=None):
     if collection:
-        tweets, retweets, mentions, replies = collect_data(username)
-        df_activities = parse_output(tweets)
-        df_rts = parse_output_v2(retweets)
-        df_mentions = parse_output(mentions)
-        df_rps = parse_output(replies)
+        df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m = collect_data_update(username)
+        # df_activities = parse_output(tweets)
+        # df_rts = parse_output_v2(retweets)
+        # df_mentions = parse_output(mentions)
+        # df_rps = parse_output(replies)
 
-        df_activities = refactor_columns(df_activities)
-        df_mentions = refactor_columns(df_mentions)
-        df_rps = refactor_columns(df_rps)
-        df_rts = refactor_columns(df_rts)
-        df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m = dataset_split(df_activities, df_mentions, df_rps,
-                                                                                df_rts, username)
+        # df_activities = refactor_columns(df_activities)
+        # df_mentions = refactor_columns(df_mentions)
+        # df_rps = refactor_columns(df_rps)
+        # df_rts = refactor_columns(df_rts)
+        # df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m = dataset_split(df_activities, df_mentions, df_rps,
+        #                                                                         df_rts, username)
+        df_tw_a = refactor_columns(df_tw_a)
+        df_m_a = refactor_columns(df_m_a)
+        df_rp_a = refactor_columns(df_rp_a)
+        df_RT_a = refactor_columns(df_RT_a)
+        df_RT_m = refactor_columns(df_RT_m)
+        df_rp_m = refactor_columns(df_rp_m)
+        df_m_m = refactor_columns(df_m_m)
+
     df_traj = generate_trajectory(df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m)
     if len(df_traj) == 0:
         print(f"{username} doesn't have enough interaction, cannot calculate Troll score")
