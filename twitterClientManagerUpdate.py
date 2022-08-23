@@ -1,5 +1,5 @@
 from tweepy import API
-from tweepy import Cursor
+# from tweepy import Cursor
 from tweepy import OAuthHandler
 import tweepy
 import pandas as pd
@@ -22,8 +22,11 @@ class TwitterClientV1:
         self.twitter_user = twitter_user
         self.tweet_id = tweet_id
 
-    def search_tweets(self, query, max):
-        searched = [status for status in tweepy.Cursor(self.twitter_client.search_tweets, q=query).items(max)]
+    def search_tweets(self, query, max, idd):
+        if idd is not None:
+            searched = [status for status in tweepy.Cursor(self.twitter_client.search_tweets, q=query).items(max)]
+        else:
+            searched = [status for status in tweepy.Cursor(self.twitter_client.search_tweets, q=query, since_id=idd).items(max)]
         if len(searched) > 0:
             json_data = [r._json for r in searched]
             df = pd.json_normalize(json_data)
@@ -31,9 +34,13 @@ class TwitterClientV1:
             df = pd.DataFrame()
         return df
 
-    def get_active_interactions(self, max_tweets=100):
+    def get_active_interactions(self, max_tweets=250):
         query = f"from:{self.twitter_user}"
-        df = self.search_tweets(query, max_tweets)
+        df = self.search_tweets(query, max_tweets, None)
+        if len(df) > 0:
+            idd = list(df["id_str"])[-1]
+        else:
+            idd = None
         if ("retweeted_status.created_at" in list(df.columns)) & ("in_reply_to_status_id" in list(df.columns)):
             original = df[df["retweeted_status.created_at"].isna() & df["in_reply_to_status_id"].isna()]
             reply = df[(df["in_reply_to_status_id"].notna()) & (df["retweeted_status.created_at"].isna())]
@@ -61,18 +68,18 @@ class TwitterClientV1:
             original = original[original["mention"].isna()]
         else:
             mentions = pd.DataFrame()
-        return original, reply, retweet, mentions
+        return idd, original, reply, retweet, mentions
 
-    def get_passive_rts(self, max_rts=30):
+    def get_passive_rts(self, idd, max_rts=100):
         query = f"RT @{self.twitter_user}"
-        return self.search_tweets(query, max_rts)
+        return self.search_tweets(query, max_rts, idd)
 
-    def get_passive_rps(self, max_rps=30):
+    def get_passive_rps(self, idd, max_rps=100):
         query = f"to:{self.twitter_user}"
-        return self.search_tweets(query, max_rps)
+        return self.search_tweets(query, max_rps, idd)
 
-    def get_passive_mentions(self, max_mentions=30):
+    def get_passive_mentions(self, idd, max_mentions=100):
         query = f"@{self.twitter_user} -filter:retweets -to:{self.twitter_user}"
-        return self.search_tweets(query, max_mentions)
+        return self.search_tweets(query, max_mentions, idd)
 
 

@@ -117,22 +117,22 @@ def get_keys():
 
 
 def collect_data_update(username):
-    print("Starting collection...")
+    # print("Starting collection...")
     api = get_keys()
     twitter_client_v1 = twitterClientManagerUpdate.TwitterClientV1(apis=api, twitter_user=username)
-    original, reply, retweet, mentions = twitter_client_v1.get_active_interactions(max_tweets=30)
-    print(f"Original: ", len(original))
-    print(f"Reply: ", len(reply))
-    print(f"Retweet: ", len(retweet))
-    print(f"Mentions: ", len(mentions))
-    rts = twitter_client_v1.get_passive_rts(max_rts=10)
-    print(f"RTs: ", len(rts))
-    rps = twitter_client_v1.get_passive_rps(max_rps=10)
-    print(f"RPs: ", len(rps))
-    mnts = twitter_client_v1.get_passive_mentions(max_mentions=10)
-    print(f"MNTs: ", len(mnts))
-    print("Data collected!")
-    print("-----------------")
+    idd, original, reply, retweet, mentions = twitter_client_v1.get_active_interactions()
+    # print(f"Original: ", len(original))
+    # print(f"Reply: ", len(reply))
+    # print(f"Retweet: ", len(retweet))
+    # print(f"Mentions: ", len(mentions))
+    rts = twitter_client_v1.get_passive_rts(idd)
+    # print(f"RTs: ", len(rts))
+    rps = twitter_client_v1.get_passive_rps(idd)
+    # print(f"RPs: ", len(rps))
+    mnts = twitter_client_v1.get_passive_mentions(idd)
+    # print(f"MNTs: ", len(mnts))
+    # print("Data collected!")
+    # print("-----------------")
     return original, mentions, reply, retweet, rts, rps, mnts
 
 
@@ -240,7 +240,7 @@ def generate_trajectory(df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_
     traj = []
     user = []
     for user_name in users_subset:
-        print(f"creating traj for {user_name}")
+        # print(f"creating traj for {user_name}")
 
         tw_a_u, n_tw_a = tweet_utils.create_user_dataframe(df_tw_a, user_name, 'screen_name', 1,
                                                            "a")  # action: original tweet
@@ -289,8 +289,8 @@ def generate_trajectory(df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_
             user.append(user_name)
         else:
             print("user %s has %s actions and %s states" % (user_name, n_a, n_p))
-    print("Traj calculated!")
-    print("-----------------")
+    # print("Traj calculated!")
+    # print("-----------------")
     return pd.DataFrame(list(zip(user, traj)), columns=["screen_name", "state_sequence"])
 
 
@@ -336,8 +336,8 @@ def calculate_troll_score(username, collection=True, df_tw_a=None, df_m_a=None, 
         # df_mentions = refactor_columns(df_mentions)
         # df_rps = refactor_columns(df_rps)
         # df_rts = refactor_columns(df_rts)
-        # df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m = dataset_split(df_activities, df_mentions, df_rps,
-        #                                                                         df_rts, username)
+        # df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m = dataset_split(df_activities, df_mentions,
+        # df_rps, df_rts, username)
         df_tw_a = refactor_columns(df_tw_a)
         df_m_a = refactor_columns(df_m_a)
         df_rp_a = refactor_columns(df_rp_a)
@@ -349,7 +349,9 @@ def calculate_troll_score(username, collection=True, df_tw_a=None, df_m_a=None, 
     df_traj = generate_trajectory(df_tw_a, df_m_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m)
     if len(df_traj) == 0:
         print(f"{username} doesn't have enough interaction, cannot calculate Troll score")
+        return None
     else:
         df_traj['state_sequence'] = df_traj.apply(lambda row: reconstruct_traj(row['state_sequence']), axis=1)
         df_traj['sequence_numbers'] = df_traj.apply(lambda row: remove_action(row['state_sequence']), axis=1)
         print(f'Troll score: {predict(df_traj["sequence_numbers"])[0][0]}')
+        # return predict(df_traj["sequence_numbers"])[0][0]
