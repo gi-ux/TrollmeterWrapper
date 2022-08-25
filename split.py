@@ -9,9 +9,10 @@ from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 workers = 8
+print("Reading files")
 df = pd.read_csv(r"C:\Users\gianluca.nogara\Desktop\Repo\Vaccines_Discussion_Italy\Italian\files\tweets\tweets.csv",
                  lineterminator="\n", low_memory=False, encoding="utf-8")
-lst = list(pd.Series(df["user_screen_name"]))
+lst = list(pd.Series(df["user_screen_name"])[:20])
 
 
 def process_users(df_: pd.DataFrame):
@@ -133,7 +134,7 @@ def process_user(df: pd.DataFrame, count: int) -> pd.DataFrame:
     df_merged = pd.concat([df_m_a, df_tw_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m], axis=0)
     del original, mention, mention_df, reply, quote, df_m_m, df_m_a, df_rp_a, df_rp_m, df_RT_a, df_tw_a, df_RT_m
     print("Finishing worker ", count)
-    return df_merged
+    # return df_merged
 
 
 def split_df(df: pd.DataFrame):
@@ -153,3 +154,7 @@ def split_df(df: pd.DataFrame):
     df["user_retweeted_statuses_count"] = [np.NaN for _ in range(len(df))]
     new_df = process_users(df)
     print(new_df)
+
+
+if __name__ == '__main__':
+    split_df(df=df)

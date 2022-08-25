@@ -353,5 +353,11 @@ def calculate_troll_score(username, collection=True, df_tw_a=None, df_m_a=None, 
     else:
         df_traj['state_sequence'] = df_traj.apply(lambda row: reconstruct_traj(row['state_sequence']), axis=1)
         df_traj['sequence_numbers'] = df_traj.apply(lambda row: remove_action(row['state_sequence']), axis=1)
-        print(f'Troll score: {predict(df_traj["sequence_numbers"])[0][0]}')
+        # print(df_traj["sequence_numbers"]
+        names = list(df_traj["screen_name"])
+        lst = predict(df_traj["sequence_numbers"])
+        for i in range(len(names)):
+            print(names[i])
+            print(lst[i][0])
+            print("_________")
         # return predict(df_traj["sequence_numbers"])[0][0]
