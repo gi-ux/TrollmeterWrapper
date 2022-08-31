@@ -2,29 +2,22 @@ import pandas as pd
 import re
 import numpy as np
 import warnings
-import tqdm
 from concurrent.futures import wait as futures_wait
 from concurrent.futures.process import ProcessPoolExecutor
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 workers = 8
-print("Reading files")
-df = pd.read_csv(r"C:\Users\gianluca.nogara\Desktop\Repo\Vaccines_Discussion_Italy\Italian\files\tweets\tweets.csv",
-                 lineterminator="\n", low_memory=False, encoding="utf-8")
-lst = list(pd.Series(df["user_screen_name"])[:20])
 
 
-def process_users(df_: pd.DataFrame):
+def process_users(df_: pd.DataFrame, lst: list):
     futures = []
     results = pd.DataFrame()
     executor = ProcessPoolExecutor(max_workers=workers)
     sublist = np.array_split(df_, workers)
-    global df
-    del df
     count = 0
     for sc in sublist:
-        futures.append(executor.submit(process_user, sc, count))
+        futures.append(executor.submit(process_user, sc, lst, count))
         count += 1
     futures_wait(futures)
     for fut in futures:
@@ -32,7 +25,7 @@ def process_users(df_: pd.DataFrame):
     return results
 
 
-def process_user(df: pd.DataFrame, count: int) -> pd.DataFrame:
+def process_user(df: pd.DataFrame, lst: list, count: int) -> pd.DataFrame:
     print("Starting worker ", count)
     original = df[df["in_reply_to_screen_name"].isna() & df["rt_created_at"].isna() & df["quoted_status_id"].isna()]
     reply = df[df["in_reply_to_user_id"].notna() & df["quoted_status_id"].isna()]
@@ -41,7 +34,7 @@ def process_user(df: pd.DataFrame, count: int) -> pd.DataFrame:
     original = pd.concat([original, quote], axis=0)
     replies_df = pd.DataFrame()
     mention_df = pd.DataFrame()
-    for row in tqdm.tqdm(original.itertuples(index=False)):
+    for row in tqdm(original.itertuples(index=False)):
         result = re.findall("@([a-zA-Z0-9]{1,15})", row.text)
         if result:
             if row.text[0] == "@":
@@ -62,7 +55,7 @@ def process_user(df: pd.DataFrame, count: int) -> pd.DataFrame:
     df_RT_m = retweet[retweet["rt_user_screen_name"].isin(lst)]
     df_rp_m = reply[reply["in_reply_to_screen_name"].isin(lst)]
     df_m_m = pd.DataFrame()
-    for row in tqdm.tqdm(mention_df.itertuples(index=False)):
+    for row in tqdm(mention_df.itertuples(index=False)):
         for i in row.mention:
             if i in lst:
                 df_m_m = df_m_m.append(pd.DataFrame([row], columns=row._fields), ignore_index=True)
@@ -134,7 +127,7 @@ def process_user(df: pd.DataFrame, count: int) -> pd.DataFrame:
     df_merged = pd.concat([df_m_a, df_tw_a, df_rp_a, df_RT_a, df_RT_m, df_rp_m, df_m_m], axis=0)
     del original, mention, mention_df, reply, quote, df_m_m, df_m_a, df_rp_a, df_rp_m, df_RT_a, df_tw_a, df_RT_m
     print("Finishing worker ", count)
-    # return df_merged
+    return df_merged
 
 
 def split_df(df: pd.DataFrame):
@@ -152,9 +145,13 @@ def split_df(df: pd.DataFrame):
     df["user_favourites_count"] = [np.NaN for _ in range(len(df))]
     df["retweet_reply_count"] = [np.NaN for _ in range(len(df))]
     df["user_retweeted_statuses_count"] = [np.NaN for _ in range(len(df))]
-    new_df = process_users(df)
+    new_df = process_users(df, lst)
     print(new_df)
-
+#     PERSIST DATA WRITING FILES
 
 if __name__ == '__main__':
+    print("Reading files")
+    df = pd.read_csv(r"C:\Users\gianluca.nogara\Desktop\Repo\Vaccines_Discussion_Italy\Italian\files\tweets\tweets.csv",
+                     lineterminator="\n", low_memory=False, encoding="utf-8")
+    lst = list(pd.Series(df["user_screen_name"])[:20])
     split_df(df=df)
