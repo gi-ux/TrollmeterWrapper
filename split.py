@@ -1,3 +1,5 @@
+########## WARNING, SPLIT WITH MULTIPROCESS CREARTE DIFFERENT TRAJECTORIES ##########
+
 import pandas as pd
 import re
 import numpy as np
@@ -147,6 +149,8 @@ def split_df(df: pd.DataFrame):
     df["user_retweeted_statuses_count"] = [np.NaN for _ in range(len(df))]
     new_df = process_users(df, lst)
     print(new_df)
+
+
 #     PERSIST DATA WRITING FILES
 
 if __name__ == '__main__':
